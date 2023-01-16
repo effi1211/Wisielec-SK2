@@ -14,20 +14,63 @@
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
+//#include "./include/message.h"
 
 #define BUF_SIZE    255
+#define INFO "INFO"
+#define ST "START"
 
-
-enum MessageType{
-    UNKNOWN = 0,
-    INFO = 1
-};
 
 struct Message{
-    MessageType type;
-    int fd_client;
-    std::string mess;
+    std::string type;
+    std::string od_kogo;
+    std::string wiadomosc;
 };
+
+
+std::string kodowanie_waid(Message mess){
+    std::string messfull;
+    messfull = mess.type + ';' + mess.od_kogo+ ';'+ mess.wiadomosc +';';
+    return messfull;
+}
+
+Message odkodowanie_waid(std::string wiad){
+    Message mess;
+    //std::getline(wiad,mess.type,';');
+   // std::getline(wiad,mess.od_kogo,';');
+   // std::getline(wiad,mess.wiadomosc,';');
+
+
+
+    int sep=0;
+    int i=0;
+    while (sep <3)
+    {
+        //std::cout<<wiad[i]<<"\n";
+        if(wiad[i]==';')
+        {
+            sep++;
+            i++;
+            continue;
+        }
+        if(sep == 0)
+        {
+            mess.type+=wiad[i];
+        }
+        if(sep==1)
+        {
+            mess.od_kogo+=wiad[i];
+        }
+        if(sep==2)
+        {
+            mess.wiadomosc+=wiad[i];
+        }
+        i++;
+    }
+
+
+    return mess;
+}
 
 char* string_char(std::string str)
 {
@@ -49,8 +92,6 @@ static void epoll_ctl_add(int epfd, int fd, uint32_t events)
 }
 
 
-
-
 int servFd;
 int epollFd;
 int socklen;
@@ -63,6 +104,8 @@ void sendToAllBut(int fd, char * buffer, int count);
 uint16_t readPort(char * txt);
 
 void setReuseAddr(int sock);
+
+char duza_litera(char znak);
 
 
 int main(int argc, char ** argv){
@@ -93,6 +136,9 @@ int main(int argc, char ** argv){
 
     epoll_ctl_add(epollFd,servFd,(EPOLLIN | EPOLLOUT | EPOLLET | EPOLLHUP));
     
+    Message mess,mess_cli;
+    mess.od_kogo="SERWER";
+
     while(true){
         int wait=epoll_wait(epollFd, events, 32, -1);
         if(-1 == wait) {
@@ -102,6 +148,7 @@ int main(int argc, char ** argv){
 
         for(int i=0;i<wait;i++)
         {
+            char test[255];
             if(events[i].data.fd == servFd) // nowi klienci
             {
                 sockaddr_in clientAddr{};
@@ -115,18 +162,36 @@ int main(int argc, char ** argv){
 					      EPOLLHUP); //dodajemy go z eventami od niego
 
                 std::cout<<"Nowy client, fd: "<<cliFD<<" !\n";
+                
+                //wiadomosc powitalna nie
+                mess.wiadomosc="Witaj w Wisielcu";
+                mess.type=ST;
+                std::string str_mess = kodowanie_waid(mess);
+                int cnt = str_mess.length();
+                memcpy(test,str_mess.data(),str_mess.size());
+                //std::cout<<test;
+                
+                write(cliFD,test,cnt);
+
             }
 
-         /*   if(events[i].events & EPOLLIN)
+            if(events[i].events & EPOLLIN)
             {
                 char buffer[256];
-                ssize_t count = read(_fd, buffer, 256);
-                if(buffer[0]=='R')
-                    printf("asdasdad");
-                else
-                    events |= EPOLLERR;
+                //ssize_t count = read(events[i].data.fd, buffer, 256);
+               // if(count>0)
+                //{
+                 //   printf("Wiad od fd-%d: %s",events[i].data.fd,buffer);
+
+               // }  
+                if(buffer[0]=='I')
+                {
+                    //count= write(events[i].data.fd,buffer,256);
+                    //memset(buffer,0,256);
+                }              
+                
             }
-        */
+        
 
 
             if(events[i].events & (EPOLLRDHUP | EPOLLHUP)) //wylogowanie klienta
@@ -156,3 +221,12 @@ void setReuseAddr(int sock){
 }
 
 
+char duza_litera(char znak) 
+{
+    if (znak >= 96) 
+    {
+        znak -= 32;
+        return znak;
+    }
+    return znak;
+}
