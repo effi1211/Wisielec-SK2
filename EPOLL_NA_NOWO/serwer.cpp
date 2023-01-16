@@ -92,6 +92,8 @@ static void epoll_ctl_add(int epfd, int fd, uint32_t events)
 }
 
 
+class Client; //ZAPISYWANIE KLIENTOW, z tym juz bd mozna cos dalej podzialac chyba
+
 int servFd;
 int epollFd;
 int socklen;
@@ -136,7 +138,7 @@ int main(int argc, char ** argv){
 
     epoll_ctl_add(epollFd,servFd,(EPOLLIN | EPOLLOUT | EPOLLET | EPOLLHUP));
     
-    Message mess,mess_cli;
+    Message mess;
     mess.od_kogo="SERWER";
 
     while(true){
@@ -161,7 +163,7 @@ int main(int argc, char ** argv){
                 epoll_ctl_add(epollFd,cliFD,EPOLLIN | EPOLLET | EPOLLRDHUP |
 					      EPOLLHUP); //dodajemy go z eventami od niego
 
-                std::cout<<"Nowy client, fd: "<<cliFD<<" !\n";
+                std::cout<<"Nowy client, fd: "<<cliFD<<" "<<i<<" !\n";
                 
                 //wiadomosc powitalna nie
                 mess.wiadomosc="Witaj w Wisielcu";
@@ -177,18 +179,16 @@ int main(int argc, char ** argv){
 
             if(events[i].events & EPOLLIN)
             {
-                char buffer[256];
-                //ssize_t count = read(events[i].data.fd, buffer, 256);
-               // if(count>0)
-                //{
-                 //   printf("Wiad od fd-%d: %s",events[i].data.fd,buffer);
-
-               // }  
-                if(buffer[0]=='I')
-                {
-                    //count= write(events[i].data.fd,buffer,256);
-                    //memset(buffer,0,256);
-                }              
+                char buffer[255]{};
+                //memset(buffer,0,255);
+                ssize_t count = read(events[i].data.fd, buffer, 256);
+                if(count > 0){ 
+                    //std::cout<<buffer;
+                    std::string str_mess = std::string(buffer);
+                    Message mess_cli=odkodowanie_waid(str_mess);
+                    
+                    //POTRZEBUJEMY JAKOS ZAPISYWAC CLIENTOW
+                }   
                 
             }
         
