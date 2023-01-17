@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <iostream>
+#include "./include/wisielec.h"
 //#include "./include/message.h"
 
 #define BUF_SIZE    255
@@ -24,7 +25,7 @@
 
 struct Client{
     int fd;
-    std::string name;
+    std::string wisielec;
     int points = 0;
 };
 
@@ -154,6 +155,7 @@ void setReuseAddr(int sock);
 char duza_litera(char znak);
 
 
+
 int main(int argc, char ** argv){
     if(argc != 2) error(1, 0, "Need 1 arg (port)");
     auto port = readPort(argv[1]);
@@ -174,6 +176,10 @@ int main(int argc, char ** argv){
     if(res) error(1, errno, "listen failed");
 
     ssize_t n;
+
+    std::string haslo = "IMIE";
+    std::string kategoria = "IMIE";
+    
 
 
     epollFd = epoll_create1(0);
@@ -251,15 +257,29 @@ int main(int argc, char ** argv){
                     }
                     if(mess_cli.type == "READY")
                     {   
-                        std::cout<<mess_cli.type<<"/n";
-                        write_message("kategoria",READY,events[i].data.fd);  
+                        std::cout<<mess_cli.type<<"\n";
+                        write_message("imie",READY,events[i].data.fd);  
                     }
                     if(mess_cli.type == "HASLO")
                     {
-                        std::cout<<mess_cli.type<<"/n";
-                        write_message("Haslo","HASLO",events[i].data.fd);  
-                   
+                        std::cout<<mess_cli.type<<"\n";
+                        write_message("_ _ _ _","HASLO",events[i].data.fd);  
                     }
+                    if(mess_cli.type == "GAME")
+                    {   
+                        write_message("x","GAME",events[i].data.fd);
+
+                        //std::cout<<"tu lecimy z grą, litera odebrana, sprawdzenie czzy jest litera,dodanie pkt,itd";
+                        
+                    }
+                    if(mess_cli.type == "PYTLIT")
+                    {
+                        
+                        
+                        std::cout<<mess_cli.type<<"\n";
+                        
+                    }
+
                     //POTRZEBUJEMY JAKOS ZAPISYWAC CLIENTOW, tak
 
                 }   

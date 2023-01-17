@@ -9,11 +9,36 @@
 #include <cstdio>
 #include <iostream>
 #include <cstring>
+#include <sys/epoll.h>
+#include <unordered_set>
+#include <signal.h>
+#include <string.h>
 #define INFO "INFO"
 #define ST "START"
 #define READY "READY"
 
+#include "./include/wisielec.h"
+
 //#include "./include/message.h"
+
+void dostepne_litery() 
+{
+    for (int i = 0; i < 26; i++) 
+    {
+        alfabet[i] = i + 65;
+    }
+}
+
+void dostepne_litery_aktualizacja(std::string znak) 
+{
+    for (int i = 0; i < 26; i++)
+    {
+        if (alfabet[i] == znak[0]) 
+        {
+            alfabet[i] = ' ';
+        }
+    }
+}
 
 ssize_t readData(int fd, char * buffer, ssize_t buffsize){
     auto ret = read(fd, buffer, buffsize);
@@ -97,6 +122,39 @@ void write_message(std::string message,std::string type, int sock)
     memset(test,0,255);
 
 }
+bool czy_znak_jest_litera(std::string znak)
+{
+    if ( (znak[0] < 65) || (znak[0] > 91 && znak[0] < 96) || (znak[0] > 122) ) {
+        return false;
+    }
+    else return true;
+}
+
+std::string duza_litera(std::string znak) 
+{
+    if (znak[0] >= 96) 
+    {
+        znak[0] -= 32;
+        return znak;
+    }
+    return znak;
+}
+
+void game(int sock)
+{   
+    std::string litera;
+    dostepne_litery();
+    std::cout<<"Podaj Litere\n";
+    std::cin>>litera;
+    while(!czy_znak_jest_litera(litera)){
+        std::cout<<"Podaj LITERE\n";
+        std::cin>>litera;
+    }
+    litera=duza_litera(litera);
+
+    dostepne_litery_aktualizacja(litera);
+    write_message(litera,"PYTLIT",sock);
+}
 
 int main(int argc, char ** argv){
     if(argc!=3) error(1,0,"Need 2 args");
@@ -141,7 +199,7 @@ int main(int argc, char ** argv){
         if(received>0)
         {
             //ODBIERA W KOLKO WIADOMOSCI OD SERWERA W ZALEZNOSCI JAKI PREFIX TO COS BD ROBIC
-           // std::cout<<buffer<<"\n";
+            //std::cout<<"BUFFER: "<<buffer<<"\n";
             std::string str_mess = std::string(buffer);
             //std::cout<<mess_zwr.type<<"\n";
             mess_zwr=odkodowanie_waid(str_mess);
@@ -162,6 +220,10 @@ int main(int argc, char ** argv){
             {
                 std::cout<<"Haslo: "<<mess_zwr.wiadomosc<<"\n";
                 write_message("a","GAME",sock);
+            }
+            if(mess_zwr.type == "GAME")
+            {
+                game(sock);
             }
 
             
