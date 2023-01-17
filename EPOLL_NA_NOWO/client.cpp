@@ -178,18 +178,9 @@ int main(int argc, char ** argv){
     
 /****************************/
     
-    int piszesz_odczytujesz = 0 ;
 /****************************/
 
     Message mess,mess_zwr;
-    /*mess.type=ST;
-    mess.wiadomosc="\n";
-
-    std::string str_mess=kodowanie_waid(mess);
-    int cnt = str_mess.length();
-    memcpy(buffer,str_mess.data(),str_mess.size());
-    writeData(sock,buffer,cnt);*/
-
     write_message("",ST,sock);
     
     while(true){
@@ -224,6 +215,26 @@ int main(int argc, char ** argv){
             if(mess_zwr.type == "GAME")
             {
                 game(sock);
+                
+            }
+            if(mess_zwr.type  == "WAIT")
+            {
+                std::cout<<mess_zwr.wiadomosc<<"\n";
+                mess_zwr.type="";
+            }
+            if(mess_zwr.type == "WIN")
+            {
+                std::cout<<"ZGADLES HASLO JAKO PIERWSZY! "<<mess_zwr.wiadomosc;
+            }
+            if(mess_zwr.type == "END"){
+                
+
+                std::cout<<"POLEGLES :( Twoje pkt to: "<<mess_zwr.wiadomosc;
+            }
+            if(mess_zwr.type == "BREAK")
+            {
+                std::cout<<mess_zwr.wiadomosc<<"\n";
+                break;
             }
 
             
