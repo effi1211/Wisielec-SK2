@@ -19,7 +19,28 @@
 #define BUF_SIZE    255
 #define INFO "INFO"
 #define ST "START"
+#define READY "READY"
+//clienci
 
+struct Client{
+    int fd;
+    std::string name;
+    int points = 0;
+};
+
+Client clients[1000];
+int numClients = 0;
+
+void addClient(int fd)
+{
+    clients[numClients].fd = fd;
+    numClients++;
+}
+
+//clienci end
+
+
+//wiadomosci
 
 struct Message{
     std::string type;
@@ -71,7 +92,7 @@ Message odkodowanie_waid(std::string wiad){
 
     return mess;
 }
-
+//waidomosci end
 char* string_char(std::string str)
 {
     const int lenght = str.length();
@@ -90,9 +111,32 @@ static void epoll_ctl_add(int epfd, int fd, uint32_t events)
 		exit(1);
 	}
 }
+ssize_t readData(int fd, char * buffer, ssize_t buffsize){
+    auto ret = read(fd, buffer, buffsize);
+    if(ret==-1) error(1,errno, "read failed on descriptor %d", fd);
+    return ret;
+}
 
+void writeData(int fd, char * buffer, ssize_t count){
+    auto ret = write(fd, buffer, count);
+    if(ret==-1) error(1, errno, "write failed on descriptor %d", fd);
+    if(ret!=count) error(0, errno, "wrote less than requested to descriptor %d (%ld/%ld)", fd, count, ret);
+}
 
-class Client; //ZAPISYWANIE KLIENTOW, z tym juz bd mozna cos dalej podzialac chyba
+void write_message(std::string message,std::string type, int fd)
+{
+    char test[255];
+    Message mess;
+    mess.wiadomosc=message;
+    mess.type=type;
+    std::string str_mess = kodowanie_waid(mess);
+    ssize_t cnt = str_mess.length();
+    memcpy(test,str_mess.data(),str_mess.size());
+    //std::cout<<test;
+    
+    writeData(fd,test,cnt);
+    memset(test,0,255);
+}
 
 int servFd;
 int epollFd;
@@ -139,7 +183,6 @@ int main(int argc, char ** argv){
     epoll_ctl_add(epollFd,servFd,(EPOLLIN | EPOLLOUT | EPOLLET | EPOLLHUP));
     
     Message mess;
-    mess.od_kogo="SERWER";
 
     while(true){
         int wait=epoll_wait(epollFd, events, 32, -1);
@@ -163,31 +206,62 @@ int main(int argc, char ** argv){
                 epoll_ctl_add(epollFd,cliFD,EPOLLIN | EPOLLET | EPOLLRDHUP |
 					      EPOLLHUP); //dodajemy go z eventami od niego
 
-                std::cout<<"Nowy client, fd: "<<cliFD<<" "<<i<<" !\n";
-                
-                //wiadomosc powitalna nie
-                mess.wiadomosc="Witaj w Wisielcu";
-                mess.type=ST;
-                std::string str_mess = kodowanie_waid(mess);
-                int cnt = str_mess.length();
-                memcpy(test,str_mess.data(),str_mess.size());
-                //std::cout<<test;
-                
-                write(cliFD,test,cnt);
+                std::cout<<"Nowy client, fd: "<<cliFD<<" !\n";
+                addClient(cliFD);
 
             }
 
-            if(events[i].events & EPOLLIN)
+            if(events[i].events & EPOLLIN)// DZIALA ZLE
             {
-                char buffer[255]{};
+                char buffer[255];
                 //memset(buffer,0,255);
+
                 ssize_t count = read(events[i].data.fd, buffer, 256);
                 if(count > 0){ 
                     //std::cout<<buffer;
                     std::string str_mess = std::string(buffer);
                     Message mess_cli=odkodowanie_waid(str_mess);
-                    
-                    //POTRZEBUJEMY JAKOS ZAPISYWAC CLIENTOW
+                    std::cout<<"Client: "<<events[i].data.fd<<" Type: "<<mess_cli.type<<"\n";
+
+                    if(mess_cli.type == ST)
+                    {
+/*                                        //wiadomosc powitalna nie
+                        mess.wiadomosc="Witaj w Wisielcu";
+                        mess.type=ST;
+                        std::string str_mess = kodowanie_waid(mess);
+                        int cnt = str_mess.length();
+                        memcpy(test,str_mess.data(),str_mess.size());
+                        //std::cout<<test;
+                        
+                        write(events[i].data.fd,test,cnt);
+*/
+                        write_message("Witaj w Wisielcu",ST,events[i].data.fd);
+/*
+                        mess.wiadomosc="nazwa";
+                        mess.type="READY";
+                        str_mess = kodowanie_waid(mess);
+                        int cnt = str_mess.length();
+                        memcpy(test,str_mess.data(),str_mess.size());
+                        //std::cout<<test;
+*/
+                        //swrite(events[i].data.fd,test,cnt);
+                        //write_message("kategoria",READY,events[i].data.fd);
+
+
+                    }
+                    if(mess_cli.type == "READY")
+                    {   
+                        std::cout<<mess_cli.type<<"/n";
+                        write_message("kategoria",READY,events[i].data.fd);  
+                    }
+                    if(mess_cli.type == "HASLO")
+                    {
+                        std::cout<<mess_cli.type<<"/n";
+                        write_message("Haslo","HASLO",events[i].data.fd);  
+                   
+                    }
+                    //POTRZEBUJEMY JAKOS ZAPISYWAC CLIENTOW, tak
+
                 }   
                 
             }

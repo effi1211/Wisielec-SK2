@@ -11,6 +11,7 @@
 #include <cstring>
 #define INFO "INFO"
 #define ST "START"
+#define READY "READY"
 
 //#include "./include/message.h"
 
@@ -78,22 +79,23 @@ Message odkodowanie_waid(std::string wiad){
     return mess;
 }
 
-void socketReaderFunction(int sock){
-        while(1){
-           // printf("2");
-            // read from socket, write to stdout
 
-            ssize_t bufsize = 255, received;
-            char buffer[bufsize];
-            received = readData(sock, buffer, bufsize);
-            if(received <= 0){
-                shutdown(sock, SHUT_RDWR);
-                close(sock);
-                exit(0);
-            }
-            writeData(1, buffer, received);
-            
-        }
+
+void write_message(std::string message,std::string type, int sock)
+{
+    char test[255];
+    Message mess;
+    mess.wiadomosc=message;
+    mess.type=type;
+    std::string str_mess = kodowanie_waid(mess);
+    //std::cout<<str_mess<<"\n";
+    ssize_t cnt = str_mess.length();
+    memcpy(test,str_mess.data(),str_mess.size());
+    //std::cout<<test;
+    
+    writeData(sock,test,cnt);
+    memset(test,0,255);
+
 }
 
 int main(int argc, char ** argv){
@@ -121,39 +123,50 @@ int main(int argc, char ** argv){
     int piszesz_odczytujesz = 0 ;
 /****************************/
 
-
-    ssize_t bufsize = 255, received;
-    char buffer[bufsize];
-
     Message mess,mess_zwr;
-    mess.type=ST;
+    /*mess.type=ST;
     mess.wiadomosc="\n";
 
+    std::string str_mess=kodowanie_waid(mess);
+    int cnt = str_mess.length();
+    memcpy(buffer,str_mess.data(),str_mess.size());
+    writeData(sock,buffer,cnt);*/
+
+    write_message("",ST,sock);
     
     while(true){
+        ssize_t bufsize = 255, received;
+        char buffer[bufsize];
         received = readData(sock, buffer, bufsize);
         if(received>0)
         {
             //ODBIERA W KOLKO WIADOMOSCI OD SERWERA W ZALEZNOSCI JAKI PREFIX TO COS BD ROBIC
            // std::cout<<buffer<<"\n";
             std::string str_mess = std::string(buffer);
+            //std::cout<<mess_zwr.type<<"\n";
             mess_zwr=odkodowanie_waid(str_mess);
-            mess.od_kogo=mess_zwr.od_kogo;
+            
           //  std::cout<<mess_zwr.wiadomosc;
             if(mess_zwr.type == ST) // odebranie wiadomosci startowej i wyslanie stanu gotowosci
             {
                 std::cout<<mess_zwr.wiadomosc<<"\n";
-                std::string str_mess=kodowanie_waid(mess);
-                int cnt = str_mess.length();
-                memcpy(buffer,str_mess.data(),str_mess.size());
-                writeData(sock,buffer,cnt);
+                write_message("a",READY,sock);
+
             }
-            if(mess_zwr.type == INFO)
+            if(mess_zwr.type == READY)
             {
-                std::cout<<"Ciekawe Informacje od "<<mess_zwr.od_kogo<<" be like: "<<mess_zwr.wiadomosc<<"\n";
+                std::cout<<"Kategoria: "<<mess_zwr.wiadomosc<<"\n";
+                write_message("a","HASLO",sock);
             }
+            if(mess_zwr.type == "HASLO")
+            {
+                std::cout<<"Haslo: "<<mess_zwr.wiadomosc<<"\n";
+                write_message("a","GAME",sock);
+            }
+
             
         }
+        memset(buffer,0,255);
     }
 
     
