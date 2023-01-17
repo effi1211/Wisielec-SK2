@@ -26,15 +26,17 @@
 struct Client{
     int fd;
     std::string wisielec;
+    std::string name;
     std::string odgadywane_haslo;
     int points = 0;
     int trys=0;
+    int acctive=0;
 };
 
 Client clients[100];
 int numClients = 0;
 int end_scorse = 0;
-int active_fd[100];
+//int active_fd[100];
 
 void addClient(int fd)
 {
@@ -165,9 +167,9 @@ int sprawdzenie(std::string zgadywana_litera, std::string poprawne_haslo,Client 
 
 void send_to_all_active(std::string message,std::string type)
 {
-    for(int j=5; j<100;j++)
+    for(int j=0; j<100;j++)
     {
-        if(active_fd[j]==1)
+        if(clients[j].acctive==1)
         {
             write_message(message,type,j);
         }
@@ -178,9 +180,10 @@ int servFd;
 int epollFd;
 int socklen;
 char buf[BUF_SIZE];
+int winner=0;
 
 
-//void ctrl_c(int);
+void ctrl_c(int);
 
 void sendToAllBut(int fd, char * buffer, int count);
 
@@ -199,7 +202,7 @@ int main(int argc, char ** argv){
     servFd = socket(AF_INET, SOCK_STREAM, 0);
     if(servFd == -1) error(1, errno, "socket failed");
     
-    //signal(SIGINT, ctrl_c);
+    signal(SIGINT, ctrl_c);
     signal(SIGPIPE, SIG_IGN);
     
     setReuseAddr(servFd);
@@ -231,7 +234,7 @@ int main(int argc, char ** argv){
         int wait=epoll_wait(epollFd, events, 32, -1);
         if(-1 == wait) {
             error(0,errno,"epoll_wait failed");
-            //ctrl_c(SIGINT);
+            ctrl_c(SIGINT);
         }
 
         for(int i=0;i<wait;i++)
@@ -251,7 +254,7 @@ int main(int argc, char ** argv){
 
                 std::cout<<"Nowy client, fd: "<<cliFD<<" !\n";
                 addClient(cliFD);
-                active_fd[cliFD]=1;
+                clients[cliFD].acctive=1;
 
 
             }
@@ -270,7 +273,7 @@ int main(int argc, char ** argv){
 
                     if(mess_cli.type == ST)
                     {
-                        write_message("Witaj w Wisielcu",ST,events[i].data.fd);
+                        write_message(": Witaj w Wisielcu",ST,events[i].data.fd);
                     }
                     if(mess_cli.type == "READY")
                     {   
@@ -286,9 +289,6 @@ int main(int argc, char ** argv){
                     if(mess_cli.type == "GAME")
                     {   
                         write_message("x","GAME",events[i].data.fd);
-                        
-                        //std::cout<<"tu lecimy z grą, litera odebrana, sprawdzenie czzy jest litera,dodanie pkt,itd";
-                        
                     }
                     if(mess_cli.type == "PYTLIT")
                     {
@@ -300,22 +300,57 @@ int main(int argc, char ** argv){
                         
                         std::cout<<clients[events[i].data.fd].points<<std::endl;
                         
-                        if(clients[events[i].data.fd].trys >10)
+                        if(clients[events[i].data.fd].trys ==10)
                         {
+                            end_scorse++;
+                            std::cout<<end_scorse<<"\n";
+                            write_message("Skonczyly ci sie proby,poczekaj na reszte\n","WAIT",events[i].data.fd);
+                        }
+                        else if(clients[events[i].data.fd].odgadywane_haslo == haslo)
+                        {   
+                            if(winner==0)
+                            {
                                 end_scorse++;
-                                write_message("Skonczyly ci sie proby,poczekaj na reszte\n","WAIT",events[i].data.fd);
+                                write_message(clients[events[i].data.fd].odgadywane_haslo,"WIN",events[i].data.fd);
+                                winner=events[i].data.fd;
+                            }
+                            else{
+                                end_scorse++;
+                                std::string end_not_first;
+                                end_not_first = clients[events[i].data.fd].odgadywane_haslo + " Zgadles, ale nie pierwszy :(";
+                                write_message(end_not_first,"WAIT",events[i].data.fd);
+                            }
                         }
                         else{
                         write_message(clients[events[i].data.fd].odgadywane_haslo,"GAME",events[i].data.fd);
                         }
                     }
-                    if(end_scorse==numClients)
-                    {
-                        std::cout<<"KONIEC GRY";
-                    }
                     
+                    if(end_scorse==numClients)//TODO wysylanie rankingu koncowego i zamykanie serwera
+                    {
+
+                        std::cout<<"KONIEC GRY\n";
+                        
+                        for(int j; j<100;j++)
+                        {
+                            std::string ranking="RANKING ";
+                            if(clients[j].acctive == 1)
+                            {   
+                                clients[j].name="x";
+                                std::string sep = ": ";
+                                ranking += clients[j].name ;
+                                ranking += sep ;
+                                ranking += clients[j].points;
+
+                                send_to_all_active(ranking,"END");   
+                            }
+                            std::cout<<ranking<<"\n";
+                        }
+                        
+                        
+                        
+                    }
                 }   
-                
             }
         
 
@@ -325,7 +360,7 @@ int main(int argc, char ** argv){
                 std::cout<<"connection closed with fd: "<<events[i].data.fd<<"\n";
                 epoll_ctl(epollFd,EPOLL_CTL_DEL,events[i].data.fd,NULL); //usuniecie z epolli
                 close(events[i].data.fd); //zamkniecie zeby nie smiecic
-                active_fd[events[i].data.fd]=0;
+                clients[events[i].data.fd].acctive=0;
                 numClients--;
                 if(numClients<2)
                 {
@@ -364,4 +399,11 @@ char duza_litera(char znak)
         return znak;
     }
     return znak;
+}
+
+void ctrl_c(int){
+    send_to_all_active("ZAMKNIECIE SERWERA","BREAK");
+    close(servFd);
+    printf("Closing server\n");
+    exit(0);
 }

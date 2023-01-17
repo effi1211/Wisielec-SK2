@@ -143,7 +143,7 @@ std::string duza_litera(std::string znak)
 void game(int sock)
 {   
     std::string litera;
-    dostepne_litery();
+    std::cout<<"Dostepne litery: "<<alfabet<<"\n";
     std::cout<<"Podaj Litere\n";
     std::cin>>litera;
     while(!czy_znak_jest_litera(litera)){
@@ -182,6 +182,7 @@ int main(int argc, char ** argv){
 
     Message mess,mess_zwr;
     write_message("",ST,sock);
+    dostepne_litery();
     
     while(true){
         ssize_t bufsize = 255, received;
@@ -224,18 +225,21 @@ int main(int argc, char ** argv){
             }
             if(mess_zwr.type == "WIN")
             {
-                std::cout<<"ZGADLES HASLO JAKO PIERWSZY! "<<mess_zwr.wiadomosc;
-            }
-            if(mess_zwr.type == "END"){
-                
+                std::cout<<"ZGADLES HASLO JAKO PIERWSZY: "<<mess_zwr.wiadomosc<<"\n Twoje punkty:"<<mess_zwr.wiadomosc.length()<<"\n Teraz poczekaj na reszte ;)\n";
+                mess_zwr.type == "";
 
-                std::cout<<"POLEGLES :( Twoje pkt to: "<<mess_zwr.wiadomosc;
+            }
+            if(mess_zwr.type == "END")//TODO zeby na koncu pokazywal sie ranking i sajonara
+            {
+            
+                std::cout<<mess_zwr.wiadomosc<<"\n";
             }
             if(mess_zwr.type == "BREAK")
             {
                 std::cout<<mess_zwr.wiadomosc<<"\n";
                 break;
             }
+
 
             
         }
