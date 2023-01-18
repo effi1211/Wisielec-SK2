@@ -199,10 +199,15 @@ int main(int argc, char ** argv){
           //  std::cout<<mess_zwr.wiadomosc;
             if(mess_zwr.type == ST) // odebranie wiadomosci startowej i wyslanie stanu gotowosci
             {
+                
                 std::cout<<mess_zwr.wiadomosc<<"\n";
-                write_message("a",READY,sock);
+                std::cout<<"PODAJ SWOJ NICK:\n";
+                std::string nick;
+                std::cin>>nick;
+                write_message(nick,READY,sock);
 
             }
+
             if(mess_zwr.type == READY)
             {
                 std::cout<<"Kategoria: "<<mess_zwr.wiadomosc<<"\n";
@@ -215,6 +220,7 @@ int main(int argc, char ** argv){
             }
             if(mess_zwr.type == "GAME")
             {
+                std::cout<<"Haslo: "<<mess_zwr.wiadomosc<<"\n";
                 game(sock);
                 
             }
@@ -225,14 +231,15 @@ int main(int argc, char ** argv){
             }
             if(mess_zwr.type == "WIN")
             {
-                std::cout<<"ZGADLES HASLO JAKO PIERWSZY: "<<mess_zwr.wiadomosc<<"\n Twoje punkty:"<<mess_zwr.wiadomosc.length()<<"\n Teraz poczekaj na reszte ;)\n";
+                std::cout<<"ZGADLES HASLO JAKO PIERWSZY: "<<mess_zwr.wiadomosc<<"\n Twoje punkty:"<<mess_zwr.wiadomosc.length()+1<<"\n Teraz poczekaj na reszte ;)\n";
                 mess_zwr.type == "";
 
             }
-            if(mess_zwr.type == "END")//TODO zeby na koncu pokazywal sie ranking i sajonara
+            if(mess_zwr.type == "END")
             {
             
                 std::cout<<mess_zwr.wiadomosc<<"\n";
+                
             }
             if(mess_zwr.type == "BREAK")
             {

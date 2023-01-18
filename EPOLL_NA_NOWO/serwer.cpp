@@ -12,9 +12,10 @@
 #include <signal.h>
 #include <sstream>
 #include <stdio.h>
+#include <fstream>
 #include <string.h>
 #include <iostream>
-#include "./include/wisielec.h"
+//#include "./include/wisielec.h"
 //#include "./include/message.h"
 
 #define BUF_SIZE    255
@@ -36,11 +37,15 @@ struct Client{
 Client clients[100];
 int numClients = 0;
 int end_scorse = 0;
-//int active_fd[100];
 
 void addClient(int fd)
 {
     clients[fd].fd = fd;
+    clients[fd].name="";
+    clients[fd].points=0;
+    clients[fd].trys=0;
+    clients[fd].acctive=0;
+
     numClients++;
 }
 
@@ -100,6 +105,99 @@ Message odkodowanie_waid(std::string wiad){
     return mess;
 }
 //waidomosci end
+
+//wisielec 
+std::string hasla[25];
+std::string haslo;
+std::string kategoria;
+std::string zakodowane_haslo;
+
+void wczytanie_hasel(std::string nazwa_pliku) 
+{
+    std::fstream plik;
+    plik.open(nazwa_pliku);
+    for (int i = 0; i < 25; i++) 
+    {
+        plik >> hasla[i];
+    }
+    plik.close();
+
+}
+
+
+std::string kategorie()
+{
+
+    //losowanie kategorii
+    srand(time(NULL));
+    int plik_losowy = rand() % 9 + 1;
+    std::string nazwa_kategorii;
+    switch (plik_losowy)
+    {
+    case 1:
+        nazwa_kategorii = "imie.txt";
+        kategoria = "IMIE";
+        break;
+    case 2:
+        nazwa_kategorii = "zawod.txt";
+        kategoria = "ZAWOD";
+        break;
+    case 3:
+        nazwa_kategorii = "zwierze.txt";
+        kategoria = "ZWIERZE";
+        break;
+    case 4:
+        nazwa_kategorii = "panstwo.txt";
+        kategoria = "PANSTWO";
+        break;
+    case 5:
+        nazwa_kategorii = "miasto.txt";
+        kategoria = "MIASTO";
+        break;
+    case 6:
+        nazwa_kategorii = "jedzenie.txt";
+        kategoria = "JEDZENIE";
+        break;
+    case 7:
+        nazwa_kategorii = "roslina.txt";
+        kategoria = "ROSLINA";
+        break;
+    case 8:
+        nazwa_kategorii = "sport.txt";
+        kategoria = "SPORT";
+        break;
+    case 9:
+        nazwa_kategorii = "rzecz.txt";
+        kategoria = "RZECZ";
+        break;
+    default:
+        nazwa_kategorii = "imie.txt";
+        kategoria = "IMIE";
+    }
+
+    return nazwa_kategorii;
+
+}
+
+void przygotowanie_gry()
+{
+    std::string kategoria_plik="./files/";
+    kategoria_plik+=kategorie();
+
+    wczytanie_hasel(kategoria_plik);
+
+    int wylosowany_numer_hasla = rand() % 25;
+    haslo = hasla[wylosowany_numer_hasla];
+
+    for(int x=0;x<haslo.length();x++)
+    {
+        zakodowane_haslo+="_";
+    }
+    
+
+}
+
+//wisielec end
 char* string_char(std::string str)
 {
     const int lenght = str.length();
@@ -161,7 +259,11 @@ int sprawdzenie(std::string zgadywana_litera, std::string poprawne_haslo,Client 
             pasujace+=1;
         }
     }
-    clients[client.fd].trys++;
+    if(pasujace == 0)
+    {
+        clients[client.fd].trys++;
+    }
+    
     return pasujace;
 }
 
@@ -216,11 +318,8 @@ int main(int argc, char ** argv){
 
     ssize_t n;
 
-    std::string haslo = "IMIE";
-    std::string kategoria = "IMIE";
-    std::string zakodowane_haslo = "____";
-    
-
+    przygotowanie_gry();
+    std::cout<<"kategoria "<<kategoria<<"\n haslo "<<haslo<<"\nzakodowane haslo "<<zakodowane_haslo<<"\n";
 
     epollFd = epoll_create1(0);
     
@@ -231,6 +330,34 @@ int main(int argc, char ** argv){
     Message mess;
 
     while(true){
+        if(end_scorse==numClients && end_scorse>0)
+            {
+
+                std::cout<<"KONIEC GRY\n"<<end_scorse<<" "<<numClients;
+                std::string ranking="RANKING ";
+                for(int j=0; j<100;j++)
+                {
+                    
+                    if(clients[j].acctive == 1)
+                    {   
+                        //clients[j].name="\nx";
+                        std::string sep = ": ";
+                        ranking += clients[j].name ;
+                        ranking += sep ;
+                        std::string points = std::to_string(clients[j].points);
+                        ranking += points;   
+                        ranking += "\n";
+                    }
+                    //std::cout<<ranking<<"\n";
+                }
+                send_to_all_active(ranking,"BREAK");
+                
+                close(servFd);
+                printf("Closing server\n");
+                exit(0);
+                
+                
+            }
         int wait=epoll_wait(epollFd, events, 32, -1);
         if(-1 == wait) {
             error(0,errno,"epoll_wait failed");
@@ -278,6 +405,7 @@ int main(int argc, char ** argv){
                     if(mess_cli.type == "READY")
                     {   
                         std::cout<<mess_cli.type<<"\n";
+                        clients[events[i].data.fd].name = mess_cli.wiadomosc;
                         write_message(kategoria,READY,events[i].data.fd);  
                     }
                     if(mess_cli.type == "HASLO")
@@ -311,6 +439,7 @@ int main(int argc, char ** argv){
                             if(winner==0)
                             {
                                 end_scorse++;
+                                clients[events[i].data.fd].points++;
                                 write_message(clients[events[i].data.fd].odgadywane_haslo,"WIN",events[i].data.fd);
                                 winner=events[i].data.fd;
                             }
@@ -326,35 +455,9 @@ int main(int argc, char ** argv){
                         }
                     }
                     
-                    if(end_scorse==numClients)//TODO wysylanie rankingu koncowego i zamykanie serwera
-                    {
-
-                        std::cout<<"KONIEC GRY\n";
-                        
-                        for(int j; j<100;j++)
-                        {
-                            std::string ranking="RANKING ";
-                            if(clients[j].acctive == 1)
-                            {   
-                                clients[j].name="x";
-                                std::string sep = ": ";
-                                ranking += clients[j].name ;
-                                ranking += sep ;
-                                ranking += clients[j].points;
-
-                                send_to_all_active(ranking,"END");   
-                            }
-                            std::cout<<ranking<<"\n";
-                        }
-                        
-                        
-                        
-                    }
                 }   
             }
-        
-
-
+    
             if(events[i].events & (EPOLLRDHUP | EPOLLHUP)) //wylogowanie klienta
             {
                 std::cout<<"connection closed with fd: "<<events[i].data.fd<<"\n";
