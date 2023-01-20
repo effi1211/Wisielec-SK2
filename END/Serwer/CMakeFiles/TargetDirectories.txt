@@ -1,0 +1,4 @@
+/mnt/c/Users/Monks/Desktop/sk22/Serwer/CMakeFiles/rebuild_cache.dir
+/mnt/c/Users/Monks/Desktop/sk22/Serwer/CMakeFiles/edit_cache.dir
+/mnt/c/Users/Monks/Desktop/sk22/Serwer/CMakeFiles/cppcheck.dir
+/mnt/c/Users/Monks/Desktop/sk22/Serwer/CMakeFiles/ser.dir
