@@ -1,0 +1,44 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/mnt/c/Users/Monks/Desktop/sk22/Client/client.cpp
+cstdlib
+-
+unistd.h
+-
+sys/socket.h
+-
+netinet/in.h
+-
+errno.h
+-
+error.h
+-
+netdb.h
+-
+thread
+-
+cstdio
+-
+iostream
+-
+cstring
+-
+sys/epoll.h
+-
+unordered_set
+-
+signal.h
+-
+string.h
+-
+string
+-
+fstream
+-
+

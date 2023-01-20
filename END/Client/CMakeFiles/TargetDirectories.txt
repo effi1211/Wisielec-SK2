@@ -1,0 +1,4 @@
+/mnt/c/Users/Monks/Desktop/sk22/Client/CMakeFiles/rebuild_cache.dir
+/mnt/c/Users/Monks/Desktop/sk22/Client/CMakeFiles/edit_cache.dir
+/mnt/c/Users/Monks/Desktop/sk22/Client/CMakeFiles/cppcheck.dir
+/mnt/c/Users/Monks/Desktop/sk22/Client/CMakeFiles/cli.dir
