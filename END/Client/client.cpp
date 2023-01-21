@@ -236,10 +236,18 @@ int main(int argc, char ** argv){
     if(argc!=3) error(1,0,"Need 2 args");
     
     // Resolve arguments to IPv4 address with a port number
-    addrinfo *resolved, hints={.ai_flags=0, .ai_family=AF_INET, .ai_socktype=SOCK_STREAM};
+    addrinfo *resolved;
+    addrinfo hints = {};
+    hints.ai_flags = 0;
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = 0;
+    hints.ai_addrlen = 0;
+    hints.ai_addr = nullptr;
+    hints.ai_canonname = nullptr;
+    hints.ai_next = nullptr;
     
-    
-    
+
     int res = getaddrinfo(argv[1], argv[2], &hints, &resolved);
     if(res || !resolved) error(1, 0, "getaddrinfo: %s", gai_strerror(res));
     
@@ -305,7 +313,7 @@ int main(int argc, char ** argv){
                 str.erase(0,1);
                 std::cout<<str<<"\n";
                 game(sock,wis);
-                
+            
             }
             if(mess_zwr.type == "WISIELCE")
             {
